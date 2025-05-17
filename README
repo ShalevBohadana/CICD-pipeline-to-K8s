@@ -1,42 +1,53 @@
-# CI/CD Pipeline to Kubernetes
+# 🚀 CI/CD Pipeline to Kubernetes
 
-This repository demonstrates a full CI/CD pipeline deploying a Node.js application to an AWS EKS cluster, with infrastructure managed by Terraform and continuous delivery managed by Jenkins and Argo CD.
+[![Terraform](https://img.shields.io/badge/Terraform-1.4+-623CE4?logo=terraform\&logoColor=white)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-EKS-232F3E?logo=amazonaws\&logoColor=white)](https://aws.amazon.com/eks/)
+[![Jenkins](https://img.shields.io/badge/Jenkins-LTS-D24939?logo=jenkins\&logoColor=white)](https://www.jenkins.io/)
+[![GitOps](https://img.shields.io/badge/GitOps-ArgoCD-149DDD?logo=argo)](https://argoproj.github.io/argo-cd/)
 
-## Repository Structure
+> An **opinionated**, end-to-end CI/CD pipeline deploying a Node.js sample app to AWS EKS.
+> Infrastructure defined in Terraform, build & delivery via Jenkins, and GitOps with Argo CD.
+
+---
+
+## 🌲 Repository Layout
 
 ```text
-ci-cd-pipeline-demo/
-├── app/                # Node.js/Express application source
-│   ├── Dockerfile      # Builds the sample-app image
-│   └── src/
-│       └── index.js    # Simple "Hello World" server
-├── k8s/                # Kubernetes manifests
-│   ├── deployment.yaml # Kubernetes Deployment (production namespace)
-│   └── service.yaml    # Kubernetes Service (LoadBalancer)
-├── infra/              # Terraform infrastructure as code
-│   ├── state/          # Remote state bootstrap (S3 & DynamoDB)
-│   ├── bootstrap/      # Execution-role bootstrap (IAM)
-│   ├── modules/        # Reusable Terraform modules (vpc, eks, ecr, jenkins)
-│   ├── backend.hcl     # Remote state configuration
-│   ├── providers.tf    # AWS provider configuration
-│   ├── variables.tf    # Root variables
-│   ├── locals.tf       # Common locals (tags, naming)
-│   ├── main.tf         # Root module orchestration
-│   └── outputs.tf      # Root outputs (VPC IDs, EKS endpoint, ECR URL)
-├── Jenkinsfile         # Jenkins pipeline definition
-└── README.md           # This file
+📦 ci-cd-pipeline-to-k8s
+├── 📂 app/                    # Node.js “Hello World” service
+│   ├── Dockerfile
+│   └── src/index.js          # Simple Express server
+├── 📂 k8s/                    # Kubernetes manifests (YAML)
+│   ├── deployment.yaml
+│   └── service.yaml
+├── 📂 infra/                  # Terraform infrastructure
+│   ├── 📂 state/              # Terraform remote‐state (S3 & DynamoDB)
+│   ├── 📂 bootstrap/          # IAM role bootstrap for Terraform/Jenkins
+│   ├── 📂 modules/            # Reusable modules: vpc, eks, ecr, jenkins
+│   ├── backend.hcl            # Remote‐state config
+│   ├── providers.tf           # AWS provider (assume-role for CI)
+│   ├── main.tf                # Root module orchestration
+│   ├── variables.tf           # Root variables
+│   ├── locals.tf              # Common locals (tags, naming)
+│   └── outputs.tf             # Exposed outputs
+├── 📄 Jenkinsfile             # Jenkins pipeline definition
+└── 📄 README.md               # Project overview
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## 🛠 Prerequisites
 
-* AWS CLI configured with appropriate credentials
-* kubectl installed
-* Terraform v1.4+ installed
-* Jenkins (infrastructure) credentials and instance profile
+* **AWS CLI** configured with appropriate permissions
+* **Terraform v1.4+** installed
+* **kubectl** (configured after EKS cluster creation)
+* **Java & Jenkins** (for your CI server)
 
-### Phase 1: Bootstrap Remote State
+---
+
+## ⚙️ Getting Started
+
+### 1. Bootstrap Remote State
 
 ```bash
 cd infra/state
@@ -44,9 +55,11 @@ terraform init
 terraform apply -auto-approve
 ```
 
-Creates the S3 bucket and DynamoDB table for Terraform state.
+*Provision S3 bucket & DynamoDB table for shared state.*
 
-### Phase 2: Bootstrap Execution Role
+---
+
+### 2. Bootstrap Execution Role
 
 ```bash
 cd ../bootstrap
@@ -54,28 +67,36 @@ terraform init -backend-config="../backend.hcl"
 terraform apply -auto-approve
 ```
 
-Creates the `TerraformInfraRole` and instance profile for CI/EC2.
+*Create the `TerraformInfraRole` and instance profile for CI / EC2.*
 
-### Phase 3: Deploy Main Infrastructure
+---
+
+### 3. Deploy Core Infrastructure
 
 ```bash
 cd ../
-# update bootstrap_role_arn in infra/variables.tf
+# Paste the bootstrap role ARN into infra/variables.tf → bootstrap_role_arn
 terraform init -backend-config="backend.hcl" -reconfigure
 terraform plan
 terraform apply -auto-approve
 ```
 
-Provisions VPC, EKS cluster, ECR repo, and Jenkins server.
+*Provisions VPC, EKS cluster, ECR repo, and Jenkins server.*
 
-### Phase 4: Configure kubectl
+---
+
+### 4. Configure kubectl for EKS
 
 ```bash
 aws eks update-kubeconfig --region <AWS_REGION> --name <CLUSTER_NAME>
 kubectl get nodes -n production
 ```
 
-### Phase 5: Deploy Application
+*Verify your nodes are ready in the “production” namespace.*
+
+---
+
+### 5. Deploy the Sample App
 
 ```bash
 cd k8s
@@ -83,13 +104,35 @@ kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
 ```
 
-## Next Steps
-
-* Configure Argo CD in the EKS cluster for GitOps deployments
-* Add Horizontal Pod Autoscaler for the sample-app deployment
-* Secure Jenkins behind an Application Load Balancer and IAM auth
-* Implement CI tests and linting in the Jenkins pipeline
+*Your “Hello World” app will run behind a LoadBalancer service.*
 
 ---
 
-> **Note:** This README and the project are a work in progress and are not yet finished.
+## 📈 CI/CD Pipeline
+
+1. **Source**: GitHub pushes → Jenkins
+2. **Build**: Docker image built & tagged `latest`
+3. **Publish**: Image pushed to AWS ECR
+4. **Infra**: Terraform plan & apply (if infra changes)
+5. **GitOps**: Jenkins commits updated k8s manifests → Argo CD sync
+
+*Jenkinsfile* orchestrates all stages, and Argo CD ensures the cluster state matches Git.
+
+---
+
+## 📚 Next Steps & Roadmap
+
+* [ ] Install and configure **Argo CD** in EKS
+* [ ] Add **Horizontal Pod Autoscaler** for sample-app
+* [ ] Secure Jenkins behind an **Application Load Balancer** + IAM auth
+* [ ] Implement **unit and integration tests** in the Jenkins pipeline
+* [ ] Configure **monitoring & alerts** (Prometheus + Grafana)
+
+---
+
+> ⚠️ **Work in Progress**
+> This README and the accompanying Terraform & CI/CD setup are ongoing—expect updates and improvements!
+
+---
+
+> *Crafted by Shalev Bohadana as a portfolio project demonstrating enterprise-grade DevOps practices.*
