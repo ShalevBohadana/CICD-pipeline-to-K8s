@@ -1,15 +1,33 @@
+<p align="center">
+  <a href="https://www.terraform.io/"><img src="https://img.shields.io/badge/Terraform-1.4+-623CE4?logo=terraform&logoColor=white" alt="Terraform"/></a>
+  <a href="https://aws.amazon.com/eks/"><img src="https://img.shields.io/badge/AWS-EKS-232F3E?logo=amazonaws&logoColor=white" alt="AWS EKS"/></a>
+  <a href="https://www.jenkins.io/"><img src="https://img.shields.io/badge/Jenkins-LTS-D24939?logo=jenkins&logoColor=white" alt="Jenkins"/></a>
+  <a href="https://argoproj.github.io/argo-cd/"><img src="https://img.shields.io/badge/GitOps-ArgoCD-149DDD?logo=argo" alt="Argo CD"/></a>
+</p>
+
 # 🚀 CI/CD Pipeline to Kubernetes on AWS
 
-
-> **Portfolio Project** • end-to-end DevOps pipeline that builds, tests, and deploys a Node.js “Hello World” service onto AWS EKS using Terraform, Jenkins, and Argo CD.  
+> An enterprise-grade portfolio project demonstrating a complete DevOps workflow:
+> **Terraform** → **Jenkins** → **AWS ECR** → **EKS** → **Argo CD**
 
 ---
 
-## ✨ Project Overview
+## 📖 Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Repository Layout](#repository-layout)
+3. [Pipeline Flow](#pipeline-flow)
+4. [Best Practices](#best-practices)
+5. [Next Steps](#next-steps)
+6. [License](#license)
+
+---
+
+## 📝 Project Overview
 
 This repository demonstrates an enterprise-grade CI/CD workflow:
 
-1. **Infrastructure as Code**  
+1.  **Infrastructure as Code**  
    - **Terraform** modules define a production VPC (public & private subnets, NAT gateway, routing), an EKS cluster with worker node groups, an ECR registry, and a Jenkins CI server.  
    - Remote state is stored in S3 + DynamoDB with lifecycle and locking policies.  
    - A two-phase “bootstrap” pattern separates IAM role creation from workload provisioning, avoiding circular dependencies and enforcing least-privilege.
@@ -26,47 +44,72 @@ This repository demonstrates an enterprise-grade CI/CD workflow:
    - Resource requests/limits, readiness & liveness probes.  
    - Pod anti-affinity for high availability.  
    - Non-root containers and fine-grained IAM roles for security.
-
-
-
+---
 
 ## 🌲 Repository Layout
 
 ```text
-📦 ci-cd-pipeline-to-k8s
-├── 📂 app/                    # Node.js “Hello World” service
-│   ├── Dockerfile
-│   └── src/index.js          # Simple Express server
-├── 📂 k8s/                    # Kubernetes manifests (YAML)
-│   ├── deployment.yaml
-│   └── service.yaml
-├── 📂 infra/                  # Terraform infrastructure
-│   ├── 📂 state/              # Terraform remote‐state (S3 & DynamoDB)
-│   ├── 📂 bootstrap/          # IAM role bootstrap for Terraform/Jenkins
-│   ├── 📂 modules/            # Reusable modules: vpc, eks, ecr, jenkins
-│   ├── backend.hcl            # Remote‐state config
-│   ├── providers.tf           # AWS provider (assume-role for CI)
-│   ├── main.tf                # Root module orchestration
-│   ├── variables.tf           # Root variables
-│   ├── locals.tf              # Common locals (tags, naming)
-│   └── outputs.tf             # Exposed outputs
-├── 📄 Jenkinsfile             # Jenkins pipeline definition
-└── 📄 README.md               # Project overview
+ci-cd-pipeline-to-k8s/
+├── app/                   # Node.js service + Dockerfile
+├── k8s/                   # Kubernetes Deployment & Service manifests
+├── infra/
+│   ├── state/             # Terraform state (S3 & DynamoDB)
+│   ├── bootstrap/         # IAM role bootstrap for Terraform/Jenkins
+│   ├── modules/           # vpc, eks, ecr, jenkins modules
+│   ├── backend.hcl        # Remote-state config
+│   ├── providers.tf       # AWS provider config (assume-role)
+│   ├── main.tf            # Root Terraform orchestration
+│   ├── variables.tf       # Root variables
+│   ├── locals.tf          # Common tags & naming
+│   └── outputs.tf         # Root outputs
+├── Jenkinsfile            # Declarative pipeline for CI/CD
+└── README.md              # Project documentation (this file)
 ```
 
-## 📚 Next Steps & Roadmap
+---
 
-* [ ] Install and configure **Argo CD** in EKS
-* [ ] Add **Horizontal Pod Autoscaler** for sample-app
-* [ ] Secure Jenkins behind an **Application Load Balancer** + IAM auth
-* [ ] Implement **unit and integration tests** in the Jenkins pipeline
-* [ ] Configure **monitoring & alerts** (Prometheus + Grafana)
+## 🔄 Pipeline Flow
+
+1. **Code Commit** triggers **Jenkins**
+2. **Build & Test** Node.js, then **Docker Build**
+3. **Push** to **ECR**
+4. **Terraform Plan & Apply** provisions VPC, EKS, ECR, Jenkins
+5. **Argo CD** watches `k8s/` and reconciles the cluster
 
 ---
 
-> ⚠️ **Work in Progress**
-> This README and the accompanying Terraform & CI/CD setup are ongoing—expect updates and improvements!
+## 🛡️ Best Practices
+
+* **Two-Phase Bootstrap**
+
+  * Separate IAM provisioning from workload modules
+* **Secure Remote State**
+
+  * S3 bucket with versioning & SSE, DynamoDB locking
+* **Least-Privilege IAM**
+
+  * Fine-grained roles for Terraform, EKS, EC2
+* **Resilient Kubernetes**
+
+  * Rolling updates, readiness & liveness probes, pod anti-affinity
+* **Resource Governance**
+
+  * CPU/memory requests & limits, non-root containers
 
 ---
 
+## 📈 Next Steps
+
+* [ ] Deploy **Argo CD** inside EKS for full GitOps
+* [ ] Add **Horizontal Pod Autoscaler**
+* [ ] Front Jenkins with **ALB & IAM authentication**
+* [ ] Integrate **automated tests** in Jenkins
+* [ ] Implement **monitoring & alerts** (Prometheus, Grafana)
+
+---
+
+## ⚠️ Work in Progress
+
+This project is under active development—expect additional enhancements soon.
 > *Crafted by Shalev Bohadana as a portfolio project demonstrating enterprise-grade DevOps practices.*
+---
