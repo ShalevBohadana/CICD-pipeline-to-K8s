@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  namespace: production                             # isolate environments via namespaces
+  labels:
+    app: sample-app
+    tier: frontend
+spec:
+  replicas: 2                                       # start with 2 pods; you can add an HPA later
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+        tier: frontend
+    spec:
+      # Pod-level security
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: sample-app
+          image: <ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/sample-app:latest
+          imagePullPolicy: Always                  # ensure you always pull the latest tag
+          ports:
+            - containerPort: 3000
+              name: http
+          # Resource requests & limits for stability
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "128Mi"
+            limits:
+              cpu:    "500m"
+              memory: "256Mi"
+          env:
+            - name: NODE_ENV
+              value: "production"
+            # you could also reference a ConfigMap or Secret:
+            # envFrom:
+            #   - configMapRef: { name: sample-app-config }
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 5
+      # Spread pods across nodes/AZs
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: sample-app
+              topologyKey: "kubernetes.io/hostname"
+      # (Optional) Node selector or tolerations if you have specialized nodes
+      # nodeSelector:
+      #   node-role.kubernetes.io/worker: ""

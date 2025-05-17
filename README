@@ -1,0 +1,95 @@
+# CI/CD Pipeline to Kubernetes
+
+This repository demonstrates a full CI/CD pipeline deploying a Node.js application to an AWS EKS cluster, with infrastructure managed by Terraform and continuous delivery managed by Jenkins and Argo CD.
+
+## Repository Structure
+
+```text
+ci-cd-pipeline-demo/
+├── app/                # Node.js/Express application source
+│   ├── Dockerfile      # Builds the sample-app image
+│   └── src/
+│       └── index.js    # Simple "Hello World" server
+├── k8s/                # Kubernetes manifests
+│   ├── deployment.yaml # Kubernetes Deployment (production namespace)
+│   └── service.yaml    # Kubernetes Service (LoadBalancer)
+├── infra/              # Terraform infrastructure as code
+│   ├── state/          # Remote state bootstrap (S3 & DynamoDB)
+│   ├── bootstrap/      # Execution-role bootstrap (IAM)
+│   ├── modules/        # Reusable Terraform modules (vpc, eks, ecr, jenkins)
+│   ├── backend.hcl     # Remote state configuration
+│   ├── providers.tf    # AWS provider configuration
+│   ├── variables.tf    # Root variables
+│   ├── locals.tf       # Common locals (tags, naming)
+│   ├── main.tf         # Root module orchestration
+│   └── outputs.tf      # Root outputs (VPC IDs, EKS endpoint, ECR URL)
+├── Jenkinsfile         # Jenkins pipeline definition
+└── README.md           # This file
+```
+
+## Getting Started
+
+### Prerequisites
+
+* AWS CLI configured with appropriate credentials
+* kubectl installed
+* Terraform v1.4+ installed
+* Jenkins (infrastructure) credentials and instance profile
+
+### Phase 1: Bootstrap Remote State
+
+```bash
+cd infra/state
+terraform init
+terraform apply -auto-approve
+```
+
+Creates the S3 bucket and DynamoDB table for Terraform state.
+
+### Phase 2: Bootstrap Execution Role
+
+```bash
+cd ../bootstrap
+terraform init -backend-config="../backend.hcl"
+terraform apply -auto-approve
+```
+
+Creates the `TerraformInfraRole` and instance profile for CI/EC2.
+
+### Phase 3: Deploy Main Infrastructure
+
+```bash
+cd ../
+# update bootstrap_role_arn in infra/variables.tf
+terraform init -backend-config="backend.hcl" -reconfigure
+terraform plan
+terraform apply -auto-approve
+```
+
+Provisions VPC, EKS cluster, ECR repo, and Jenkins server.
+
+### Phase 4: Configure kubectl
+
+```bash
+aws eks update-kubeconfig --region <AWS_REGION> --name <CLUSTER_NAME>
+kubectl get nodes -n production
+```
+
+### Phase 5: Deploy Application
+
+```bash
+cd k8s
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+## Next Steps
+
+* Configure Argo CD in the EKS cluster for GitOps deployments
+* Add Horizontal Pod Autoscaler for the sample-app deployment
+* Secure Jenkins behind an Application Load Balancer and IAM auth
+* Implement CI tests and linting in the Jenkins pipeline
+
+---
+
+> **Note:** This README and the project are a work in progress and are not yet finished.
