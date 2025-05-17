@@ -1,14 +1,34 @@
-# 🚀 CI/CD Pipeline to Kubernetes
+# 🚀 CI/CD Pipeline to Kubernetes on AWS
 
-[![Terraform](https://img.shields.io/badge/Terraform-1.4+-623CE4?logo=terraform\&logoColor=white)](https://www.terraform.io/)
-[![AWS](https://img.shields.io/badge/AWS-EKS-232F3E?logo=amazonaws\&logoColor=white)](https://aws.amazon.com/eks/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-LTS-D24939?logo=jenkins\&logoColor=white)](https://www.jenkins.io/)
-[![GitOps](https://img.shields.io/badge/GitOps-ArgoCD-149DDD?logo=argo)](https://argoproj.github.io/argo-cd/)
 
-> An **opinionated**, end-to-end CI/CD pipeline deploying a Node.js sample app to AWS EKS.
-> Infrastructure defined in Terraform, build & delivery via Jenkins, and GitOps with Argo CD.
+> **Portfolio Project** • end-to-end DevOps pipeline that builds, tests, and deploys a Node.js “Hello World” service onto AWS EKS using Terraform, Jenkins, and Argo CD.  
 
 ---
+
+## ✨ Project Overview
+
+This repository demonstrates an enterprise-grade CI/CD workflow:
+
+1. **Infrastructure as Code**  
+   - **Terraform** modules define a production VPC (public & private subnets, NAT gateway, routing), an EKS cluster with worker node groups, an ECR registry, and a Jenkins CI server.  
+   - Remote state is stored in S3 + DynamoDB with lifecycle and locking policies.  
+   - A two-phase “bootstrap” pattern separates IAM role creation from workload provisioning, avoiding circular dependencies and enforcing least-privilege.
+
+2. **Continuous Integration**  
+   - **Jenkins** runs in a private Dev VPC. A declarative `Jenkinsfile` checkout, builds the Node.js app, runs tests, builds a Docker image, and pushes it to ECR.
+
+3. **Continuous Delivery & GitOps**  
+   - **Argo CD** in the EKS cluster watches the `k8s/` folder in Git.  
+   - Any updates to Kubernetes manifests (Deployment, Service) automatically reconcile the live cluster to your desired state.
+
+4. **Application Best Practices**  
+   - Namespaced deployment (`production`) with rolling updates.  
+   - Resource requests/limits, readiness & liveness probes.  
+   - Pod anti-affinity for high availability.  
+   - Non-root containers and fine-grained IAM roles for security.
+
+
+
 
 ## 🌲 Repository Layout
 
@@ -33,92 +53,6 @@
 ├── 📄 Jenkinsfile             # Jenkins pipeline definition
 └── 📄 README.md               # Project overview
 ```
-
----
-
-## 🛠 Prerequisites
-
-* **AWS CLI** configured with appropriate permissions
-* **Terraform v1.4+** installed
-* **kubectl** (configured after EKS cluster creation)
-* **Java & Jenkins** (for your CI server)
-
----
-
-## ⚙️ Getting Started
-
-### 1. Bootstrap Remote State
-
-```bash
-cd infra/state
-terraform init
-terraform apply -auto-approve
-```
-
-*Provision S3 bucket & DynamoDB table for shared state.*
-
----
-
-### 2. Bootstrap Execution Role
-
-```bash
-cd ../bootstrap
-terraform init -backend-config="../backend.hcl"
-terraform apply -auto-approve
-```
-
-*Create the `TerraformInfraRole` and instance profile for CI / EC2.*
-
----
-
-### 3. Deploy Core Infrastructure
-
-```bash
-cd ../
-# Paste the bootstrap role ARN into infra/variables.tf → bootstrap_role_arn
-terraform init -backend-config="backend.hcl" -reconfigure
-terraform plan
-terraform apply -auto-approve
-```
-
-*Provisions VPC, EKS cluster, ECR repo, and Jenkins server.*
-
----
-
-### 4. Configure kubectl for EKS
-
-```bash
-aws eks update-kubeconfig --region <AWS_REGION> --name <CLUSTER_NAME>
-kubectl get nodes -n production
-```
-
-*Verify your nodes are ready in the “production” namespace.*
-
----
-
-### 5. Deploy the Sample App
-
-```bash
-cd k8s
-kubectl apply -f deployment.yaml
-kubectl apply -f service.yaml
-```
-
-*Your “Hello World” app will run behind a LoadBalancer service.*
-
----
-
-## 📈 CI/CD Pipeline
-
-1. **Source**: GitHub pushes → Jenkins
-2. **Build**: Docker image built & tagged `latest`
-3. **Publish**: Image pushed to AWS ECR
-4. **Infra**: Terraform plan & apply (if infra changes)
-5. **GitOps**: Jenkins commits updated k8s manifests → Argo CD sync
-
-*Jenkinsfile* orchestrates all stages, and Argo CD ensures the cluster state matches Git.
-
----
 
 ## 📚 Next Steps & Roadmap
 
